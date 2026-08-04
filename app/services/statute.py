@@ -16,6 +16,7 @@ def _parse_date(value: str) -> date:
 
 
 def _add_years(d: date, years: int) -> date:
+    """달력 기준 연 단위 가산. 2/29 만기는 2/28로 당긴다 — 하루라도 늦춰 잡지 않는 보수적 선택."""
     try:
         return date(d.year + years, d.month, d.day)
     except ValueError:  # 2/29 → 2/28
@@ -23,6 +24,14 @@ def _add_years(d: date, years: int) -> date:
 
 
 def build_statute(payments: list[Payment], unpaid_total: int, as_of: str) -> Statute:
+    """지급기별 소멸시효 계산 → Statute.
+
+    각 payment의 pay_date + 3년을 만기로 as_of 기준 claimable/expired를 나눈다 —
+    지급기마다 시효가 다르므로 퇴사일 단일 기준은 쓰지 않는다 (불변 규칙 4).
+    체불 총액의 지급기별 배분은 균등 분배: 응답 스키마상 지급기별 산출 근거가
+    없어 단순성을 택한 설계 판단 (지급기 1건이면 손실 없음, 다건이면 근사치).
+    나머지는 마지막 지급기에 몰아 합계를 보존한다. 지급 기록이 없으면 0/빈 목록/null.
+    """
     if not payments:
         return Statute(claimable_total=0, expired_total=0, items=[], nearest_expiry_days=None)
 

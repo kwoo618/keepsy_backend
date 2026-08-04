@@ -59,7 +59,15 @@ def _range_fail(field: str, value) -> None:
 
 
 def _normalize_terms(terms: Terms) -> Terms:
-    """결정론 정규화 + 범위 검증. 모델 출력은 신뢰하지 않는다."""
+    """결정론 정규화 + 상식 범위 검증 — 모델 출력은 신뢰하지 않는다.
+
+    rate > 1 → ÷100: 계약서의 "80%"를 80.0으로 옮겨 적는 오추출이 실측됐고,
+    유효 비율(0~1]과 백분율 표기(1~100]는 구간이 겹치지 않아 ÷100이 안전한
+    결정론 변환이다. ÷100 후에도 1을 넘으면 해석 불가로 실패시킨다.
+    범위 상수들은 법령 수치가 아닌 오추출 방어용 상식 한계라 constants.py가 아닌
+    이 모듈에 둔다. 이탈 시 그럴듯한 값을 판정에 넘기는 대신 EXTRACTION_FAILED —
+    "그럴듯한 값을 채우는 것이 최악의 실패" 원칙의 추출 버전.
+    """
     probation = terms.probation
     if probation is not None and probation.rate is not None:
         if probation.rate > 1:  # "80%"를 80.0으로 오추출한 사례 → 비율로 정규화
@@ -129,6 +137,12 @@ def _timed_call(client, contents, config):
 
 
 def _generate(client, types, contents, config, quota_retry_left: int = 1):
+    """generate_content 래퍼 — 자동 복구 두 가지만 담당하고 나머지 예외는 위로 올린다.
+
+    1) thinking_budget=0을 거부하는 모델 → 기본 설정으로 1회 전환 (즉시 400이라 지연 없음)
+    2) 429 쿼터 → 1초 대기 후 1회 재시도 (일시 쿼터와 진짜 실패를 구분)
+    분류(504→AI_TIMEOUT 등)는 extract_terms 쪽 책임 — 여기서 하지 않는다.
+    """
     try:
         return _timed_call(client, contents, config)
     except Exception as exc:
@@ -144,6 +158,15 @@ def _generate(client, types, contents, config, quota_retry_left: int = 1):
 
 
 def extract_terms(req: ExtractRequest) -> ExtractResponse:
+    """계약서 이미지/텍스트 → 구조화 Terms. AI의 역할은 여기서 끝난다 — 판정은 순수 코드.
+
+    흐름: Gemini JSON 모드 호출(thinking 비활성) → 코드펜스 제거 → 스키마 검증 →
+    결정론 정규화(_normalize_terms) → confidence 산정.
+    오류 매핑: 클라이언트/서버(504) 타임아웃 → AiTimeout / API 오류·파싱 실패·
+    범위 이탈·429 재시도 소진 → ExtractionFailed. 라우터가 공통 에러 형식으로 변환.
+    confidence: 핵심 4필드(시급·주간시간·시작·종료) 중 하나라도 null이면 "low" —
+    프론트가 검토 화면을 강조하는 신호로 쓴다.
+    """
     from google import genai  # 지연 임포트 — 판정 경로가 AI 의존성을 갖지 않게 한다
     from google.genai import types
 

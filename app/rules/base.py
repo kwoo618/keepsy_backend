@@ -10,6 +10,15 @@ _RULES = (minimum_wage.check, penalty_clause.check, weekly_holiday.check, probat
 
 
 def run_contract_rules(terms: Terms, worker: Worker) -> AnalyzeContractResponse:
+    """규칙 4개(minimum_wage → penalty → weekly_holiday → probation)를 실행해 합친다.
+
+    공통 후처리 두 가지:
+    - employee_count=unknown → 가산수당 판정을 내지 않았음을 notes로 고지
+      (5인 미만 여부를 모르면 가산수당 규칙 자체를 만들지 않는 스코프 결정)
+    - contract_type=freelance → RED 전부 YELLOW 강등 + 근로자성 안내.
+      형식이 프리랜서라도 실질은 근로자일 수 있으나 그 사실 판단은 엔진 밖의
+      일이므로, 확정 대신 검토 필요로 낮춰서 낸다.
+    """
     violations = []
     notes = []
     for check in _RULES:

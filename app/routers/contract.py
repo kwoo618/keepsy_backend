@@ -21,6 +21,11 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
 
 @router.post("/contract/extract", response_model=ExtractResponse)
 def extract(req: ExtractRequest):
+    """계약서 → 구조화 terms (API_SPEC §2). image_base64/raw_text 중 하나 필수.
+
+    응답은 반드시 프론트의 검토·수정 화면을 거친 뒤에야 판정 입력으로 쓰인다.
+    실패는 공통 에러 형식: INVALID_INPUT(400) / AI_TIMEOUT(504) / EXTRACTION_FAILED(422).
+    """
     if not req.image_base64 and not req.raw_text:
         return _error(400, "INVALID_INPUT", "image_base64 또는 raw_text 중 하나가 필요합니다.")
     try:
@@ -33,4 +38,5 @@ def extract(req: ExtractRequest):
 
 @router.post("/analyze/contract", response_model=AnalyzeContractResponse)
 def analyze_contract(req: AnalyzeContractRequest) -> AnalyzeContractResponse:
+    """확정 terms + worker → 위법 판정 (API_SPEC §3). AI 미개입 — rules/가 전부 담당."""
     return run_contract_rules(req.terms, req.worker)

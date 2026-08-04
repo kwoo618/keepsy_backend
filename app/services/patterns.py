@@ -34,6 +34,7 @@ def _parse_minutes(hhmm: str) -> int:
 
 
 def _actual_minutes(log: Worklog) -> int:
+    """한 기록의 실근로 분(휴게 차감). 시작/종료 누락은 0분 처리."""
     if not log.actual_start or not log.actual_end:
         return 0
     start = _parse_minutes(log.actual_start)
@@ -55,6 +56,7 @@ def _weekly_minutes(worklogs: list[Worklog]) -> dict[date, int]:
 
 
 def _applicable_wage(terms: Terms) -> int:
+    """미지급분 계산에 쓰는 시급 — 합의 시급이 있어도 최저임금이 하한(그보다 낮게 청구할 이유가 없다)."""
     if terms.hourly_wage is None:
         return constants.MINIMUM_WAGE_2026
     return max(terms.hourly_wage, constants.MINIMUM_WAGE_2026)
@@ -71,6 +73,13 @@ def _weekly_holiday_pay(weekly_minutes: dict[date, int], weeks: list[date], wage
 
 
 def detect_reduction(terms: Terms, worklogs: list[Worklog], as_of: str) -> ReductionPattern:
+    """근로시간 축소 패턴(구 "꺾기") 감지.
+
+    계약 주간이 주휴 기준(15h) 미만인데 실근로 4주 평균이 15h 이상이면 주휴수당
+    회피용 계약시간 축소가 의심되는 신호 → YELLOW (위법 확정 아님).
+    윈도우는 as_of가 속한 주를 제외한 직전 완결 4주 — 진행 중인 주를 포함하면
+    평균이 과소 산출되기 때문. detected일 때만 주휴 추정액을 채운다.
+    """
     weekly = _weekly_minutes(worklogs)
     current_week = _week_start(_parse_date(as_of))
     window = [current_week - timedelta(weeks=k) for k in range(4, 0, -1)]  # as_of 직전 완결 4주
@@ -94,6 +103,13 @@ def detect_reduction(terms: Terms, worklogs: list[Worklog], as_of: str) -> Reduc
 
 
 def detect_repeated_deviation(worklogs: list[Worklog]) -> RepeatedDeviation:
+    """반복 이탈 감지 — planned_end 대비 actual_end 편차가 동일 방향·유사 범위 4회 이상.
+
+    등급은 항상 INFO: 법 위반 확정이 아니라 패턴 안내가 목적. "유사 범위"는 같은
+    방향 편차들의 최대-최소 차 30분 이내로 정의 (감지 휴리스틱 — 법령 수치 아님).
+    planned가 없는 기록은 표본에서 제외하고, 조기/초과 양방향 모두 성립하면
+    표본이 많은 쪽을 보고한다.
+    """
     deviations = []
     for log in worklogs:
         if not log.planned_end or not log.actual_end:
@@ -118,6 +134,18 @@ def detect_repeated_deviation(worklogs: list[Worklog]) -> RepeatedDeviation:
 
 
 def build_unpaid(req: AnalyzeWorklogsRequest) -> Unpaid:
+    """체불 추정액 = 최저임금 미달분 + 주휴수당 추정. 모든 가정은 assumptions로 반환.
+
+    미달분은 시급 확정 여부로 산식이 갈린다:
+    - 시급 확정·최저 미달: (최저임금−합의시급) × 전체 실근로시간.
+      "합의 시급대로는 지급됐다"는 가정이므로 payments와 대사하지 않는다.
+    - 시급 null: 합의액을 모르므로 지급기별로 (기간 내 실근로 × 최저임금) 대비
+      실지급액 부족분만 합산 — 최저임금 "기준으로만" 산출하고 가정을 고지
+      ("모르면 확정하지 않는다"의 체불액 버전).
+    주휴수당은 주 15h 이상인 모든 주에 대한 추정액(별도 지급 없음 가정).
+    has_overtime=true면 가산분 시간을 비교에서 분리, null/false면 스코프만 고지.
+    문구 가공은 프론트 몫 — 엔진은 숫자와 가정 텍스트만 반환한다.
+    """
     terms = req.terms
     assumptions = []
     weekly = _weekly_minutes(req.worklogs)

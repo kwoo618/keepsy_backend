@@ -65,6 +65,8 @@ class ExtractResponse(BaseModel):
 
 
 class Worker(BaseModel):
+    """판정 맥락 정보 — 등급 분기·강등(YELLOW)의 입력. unknown/null 값은 "확정하지 않음" 신호."""
+
     age: int | None = None
     employment_status: Literal["working", "quit"]
     employee_count: Literal["5plus", "under5", "unknown"]

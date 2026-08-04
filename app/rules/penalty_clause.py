@@ -1,4 +1,4 @@
-"""위약금·손해배상 예정 조항 규칙 — 순수 결정론 (AI 금지)."""
+"""위약금·손해배상 예정 조항 규칙 — rules/ 판정 계층. 순수 결정론, AI 금지."""
 
 import re
 
@@ -8,6 +8,12 @@ _PENALTY_RE = re.compile(r"위약금|손해\s*배상|배상액|변상|배상한�
 
 
 def check(terms: Terms, worker: Worker) -> tuple[list[Violation], list[str]]:
+    """위약금·손해배상 예정 조항 판정 (근로기준법 제20조 — "예정" 자체가 금지라 즉시 RED).
+
+    AI 추출의 type_hint("penalty")와 조항 원문 키워드 정규식을 OR로 매칭 —
+    추출이 type_hint를 놓쳐도 원문으로 잡기 위한 이중 장치. 매칭 조항마다
+    clause_id를 연결한 RED violation을 낸다 (프론트가 원문 하이라이트에 사용).
+    """
     violations = []
     for clause in terms.clauses:
         if clause.type_hint == "penalty" or _PENALTY_RE.search(clause.text):
