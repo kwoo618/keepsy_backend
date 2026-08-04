@@ -1,0 +1,74 @@
+{
+  "_comment": "알바 2개 시드. job1: 편의점 — 계약 14.5h/주, 최근 4주(2026-07-06 월~2026-08-02 일) 실근로 평균 16.2h → reduction_pattern 감지. planned_* null = 캘린더 미연동 → repeated_deviation 감지 생략. job2: 카페 — hourly_wage null → 최저임금 기준 비교 YELLOW 경로. 시효는 전부 claimable(as_of 2026-08-05).",
+  "as_of": "2026-08-05",
+  "jobs": [
+    {
+      "job_name": "OO편의점 문래점",
+      "expected": {
+        "reduction_pattern_detected": true,
+        "contracted_weekly": 14.5,
+        "avg_actual_weekly": 16.2,
+        "statute_all_claimable": true
+      },
+      "request": {
+        "terms": { "hourly_wage": 9500, "weekly_hours": 14.5 },
+        "worklogs": [
+          { "work_date": "2026-07-07", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-09", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "23:00", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-11", "planned_start": null, "planned_end": null, "actual_start": "16:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-14", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-16", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-18", "planned_start": null, "planned_end": null, "actual_start": "16:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-21", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "23:00", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-23", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": true },
+          { "work_date": "2026-07-25", "planned_start": null, "planned_end": null, "actual_start": "16:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-28", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "22:30", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-07-30", "planned_start": null, "planned_end": null, "actual_start": "17:00", "actual_end": "22:48", "break_minutes": 30, "is_retroactive": false },
+          { "work_date": "2026-08-01", "planned_start": null, "planned_end": null, "actual_start": "16:00", "actual_end": "22:00", "break_minutes": 30, "is_retroactive": false }
+        ],
+        "payments": [
+          {
+            "period_start": "2026-06-01",
+            "period_end": "2026-06-30",
+            "pay_date": "2026-07-10",
+            "paid_amount": 590000,
+            "known_deductions": null
+          }
+        ],
+        "has_overtime": null,
+        "as_of": "2026-08-05"
+      }
+    },
+    {
+      "job_name": "OO카페 홍대점",
+      "expected": {
+        "yellow_path_reason": "hourly_wage null — 최저임금 기준으로만 비교, 미달 시 YELLOW + assumptions 명시",
+        "statute_all_claimable": true
+      },
+      "request": {
+        "terms": { "hourly_wage": null, "weekly_hours": 9 },
+        "worklogs": [
+          { "work_date": "2026-07-11", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false },
+          { "work_date": "2026-07-12", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false },
+          { "work_date": "2026-07-18", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": true },
+          { "work_date": "2026-07-19", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false },
+          { "work_date": "2026-07-25", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false },
+          { "work_date": "2026-07-26", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false },
+          { "work_date": "2026-08-01", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false },
+          { "work_date": "2026-08-02", "planned_start": null, "planned_end": null, "actual_start": "09:00", "actual_end": "13:30", "break_minutes": 0, "is_retroactive": false }
+        ],
+        "payments": [
+          {
+            "period_start": "2026-07-01",
+            "period_end": "2026-07-31",
+            "pay_date": "2026-08-03",
+            "paid_amount": 250000,
+            "known_deductions": null
+          }
+        ],
+        "has_overtime": null,
+        "as_of": "2026-08-05"
+      }
+    }
+  ]
+}

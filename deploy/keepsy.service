@@ -1,0 +1,27 @@
+# Keepsy 판정 엔진 — 베어메탈 systemd 유닛
+# 설치: sudo cp deploy/keepsy.service /etc/systemd/system/ && sudo systemctl enable --now keepsy
+# 사전 준비 (Ubuntu):
+#   sudo apt install python3.12-venv libpango-1.0-0 libpangoft2-1.0-0 libpangocairo-1.0-0 \
+#                    libharfbuzz0b libharfbuzz-subset0 fonts-noto-cjk
+#   cd /opt/keepsy_backend && python3.12 -m venv .venv && .venv/bin/pip install -r requirements.txt
+# /opt/keepsy_backend/.env 에 환경변수 기입 (이름만 명시 — 값은 오너가):
+#   GEMINI_API_KEY= / ALLOWED_ORIGINS= / AS_OF_OVERRIDE=
+
+[Unit]
+Description=Keepsy verdict engine (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=keepsy
+Group=keepsy
+WorkingDirectory=/opt/keepsy_backend
+EnvironmentFile=-/opt/keepsy_backend/.env
+ExecStart=/opt/keepsy_backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+# Ubuntu VPS 호스트에서 실행되는 Caddy — HTTPS 자동 발급 (RN 앱은 평문 차단이므로 HTTPS 필수)
+165-140-22-175.nip.io {
+	reverse_proxy 127.0.0.1:8000
+}
