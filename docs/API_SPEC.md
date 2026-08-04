@@ -55,6 +55,10 @@
     "break_minutes": 30,
     "probation": { "months": 6, "rate": 0.8 },
     "contract_period_months": 12,
+    "workplace_name": "OO편의점 문래점",
+    "owner_name": "박OO",
+    "contract_start_date": "2026-02-01",
+    "contract_end_date": "2027-01-31",
     "clauses": [
       { "id": "c1", "text": "계약 기간 중 퇴사 시 위약금 200,000원을 배상한다", "type_hint": "penalty" },
       { "id": "c2", "text": "주휴수당은 시급에 포함된 것으로 본다", "type_hint": "weekly_holiday_inclusion" }
@@ -64,6 +68,7 @@
 }
 ```
 - 없는 항목은 `null`. `confidence: "low"`면 프론트가 검토 화면 강조
+- `workplace_name`·`owner_name`·`contract_start_date`·`contract_end_date`는 **판정 무관 참고 필드** (진정서 프리필용) — `/analyze/contract`는 이 필드들을 무시한다
 - 응답은 **반드시 검토·수정 화면을 거친 뒤** 확정 — 수정본이 이후 판정 입력. 계약서 없음(수동 입력) 경로는 이 API를 건너뛰고 같은 `terms` 스키마를 프론트가 직접 구성 (`hourly_wage: null` 허용, `clauses: []`)
 
 ---

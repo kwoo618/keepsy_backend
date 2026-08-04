@@ -30,17 +30,35 @@ class AiTimeout(Exception):
     pass
 
 
-_PROMPT = """다음 아르바이트 근로계약서에서 계약 조건을 추출하라.
-- 계약서에 없는 항목은 null
-- 시각은 "HH:MM", 금액은 원 단위 정수, 시간은 소수 허용
-- probation.rate는 0~1 사이 비율 (예: 80% → 0.8)
-- clauses에는 위약금/손해배상 예정, 주휴수당 시급 포함 등 문제 소지가 있는 조항의 원문을 담고, id는 c1, c2 … 순번
-- type_hint는 penalty | weekly_holiday_inclusion | other 중 하나
-아래 스키마의 JSON만 출력하라:
+_PROMPT = """당신은 아르바이트 근로계약서에서 계약 조건을 추출한다.
+입력이 이미지라면: 인쇄된 계약서를 휴대폰으로 촬영한 사진이며 기울어짐·그림자·부분 흐림이
+있을 수 있다. 읽어낼 수 있는 것만 추출하라.
+
+절대 규칙: 계약서에서 찾을 수 없거나 판독이 불확실한 항목은 반드시 null.
+추측하거나 일반적인 값으로 채우지 마라.
+
+필드 정의와 예시:
+- hourly_wage: 시급, 원 단위 정수. 예: "시급: 9,500원" → 9500
+- weekly_hours: 주 소정근로시간, 시간 단위(소수 허용). 예: "주 소정근로시간 14.5시간" → 14.5
+- work_days: 근무 요일 배열. 예: "매주 화·목·토요일" → ["화", "목", "토"]
+- start_time / end_time: 근무 시작·종료 시각 "HH:MM" 24시간제. 예: "오후 5시 ~ 10시" → "17:00" / "22:00"
+- break_minutes: 휴게시간, 분 단위 정수. 예: "휴게시간 30분" → 30
+- probation: 수습 조건. rate는 0~1 비율. 예: "수습 6개월간 시급의 80% 지급" → {"months": 6, "rate": 0.8}
+- contract_period_months: 계약 기간, 개월 수 정수. 예: "2026년 2월 1일부터 2027년 1월 31일까지 (12개월)" → 12
+- workplace_name: 사업장(가게) 이름. 예: "사업주(갑): OO편의점 문래점 대표 박OO" → "OO편의점 문래점"
+- owner_name: 사업주(대표자) 이름. 예: 위 문장에서 → "박OO"
+- contract_start_date / contract_end_date: 계약 시작·종료일 "YYYY-MM-DD". 예: "2026년 2월 1일부터" → "2026-02-01"
+- clauses: 문제 소지가 있는 조항의 원문 (위약금/손해배상 예정, 주휴수당 시급 포함 등).
+  id는 c1, c2 … 순번. type_hint는 penalty | weekly_holiday_inclusion | other 중 하나.
+  예: "퇴사 시 위약금 20만원을 배상한다" → {"id": "c1", "text": "(조항 원문 그대로)", "type_hint": "penalty"}
+
+아래 스키마의 JSON만 출력하라 (설명·마크다운 금지):
 {"hourly_wage": int|null, "weekly_hours": number|null, "work_days": [string]|null,
  "start_time": "HH:MM"|null, "end_time": "HH:MM"|null, "break_minutes": int|null,
  "probation": {"months": int|null, "rate": number|null}|null,
  "contract_period_months": int|null,
+ "workplace_name": string|null, "owner_name": string|null,
+ "contract_start_date": "YYYY-MM-DD"|null, "contract_end_date": "YYYY-MM-DD"|null,
  "clauses": [{"id": string, "text": string, "type_hint": string}]}
 """
 
@@ -51,6 +69,7 @@ _BREAK_MINUTES_MAX = 480
 _PROBATION_MONTHS_MAX = 24
 _CONTRACT_MONTHS_MAX = 120
 _TIME_RE = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _range_fail(field: str, value) -> None:
@@ -89,6 +108,12 @@ def _normalize_terms(terms: Terms) -> Terms:
         value = getattr(terms, field)
         if value is not None and not _TIME_RE.match(value):
             _range_fail(field, value)
+    # 판정 무관 참고 필드의 날짜는 실패 대신 null 강등 — 핵심 추출을 살리는 소프트 처리
+    for field in ("contract_start_date", "contract_end_date"):
+        value = getattr(terms, field)
+        if value is not None and not _DATE_RE.match(value):
+            _log.warning("참고 필드 형식 이탈 — %s=%r → null 처리", field, value)
+            setattr(terms, field, None)
     return terms
 
 

@@ -33,7 +33,7 @@ flowchart LR
 | `app/templates/petition.html` | 진정서 고정 문형 템플릿 (WeasyPrint) |
 | `fixtures/` · `tests/test_e2e.py` | 그라운드 트루스와 검증 하네스 |
 | `docs/API_SPEC.md` | **유일한 API 계약 문서** |
-| `deploy/` · `Dockerfile` · `Caddyfile` | 배포 (systemd 유닛 / 컨테이너 대안 / 리버스 프록시) |
+| `deploy/` · `Caddyfile` | 배포 (systemd 유닛 / 리버스 프록시) |
 
 ## 판정 규칙 요약
 
@@ -67,4 +67,4 @@ Gemini 없이도 판정·테스트 대부분이 돌아간다(추출 테스트만
 
 ## 배포
 
-Ubuntu VPS 베어메탈: `deploy/keepsy.service`(systemd, venv uvicorn, `Restart=always`)가 127.0.0.1:8000에 엔진을 띄우고, 호스트의 Caddy(`Caddyfile`)가 nip.io 도메인으로 HTTPS를 자동 발급해 리버스 프록시한다 — RN 앱은 평문 HTTP가 차단되므로 HTTPS가 필수다. WeasyPrint용 Pango·`fonts-noto-cjk`(한글 렌더링) 설치 절차는 `deploy/keepsy.service` 상단 주석 참조. 컨테이너가 필요한 환경을 위한 `Dockerfile`도 유지한다.
+Ubuntu VPS 베어메탈: `deploy/keepsy.service`(systemd, venv uvicorn, `Restart=always`)가 127.0.0.1:8000에 엔진을 띄우고, 호스트의 Caddy(`Caddyfile`)가 nip.io 도메인으로 HTTPS를 자동 발급해 리버스 프록시한다 — RN 앱은 평문 HTTP가 차단되므로 HTTPS가 필수다. WeasyPrint용 Pango·`fonts-noto-cjk`(한글 렌더링) 설치 절차는 `deploy/keepsy.service` 상단 주석 참조.

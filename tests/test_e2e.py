@@ -205,7 +205,19 @@ def test_contract_extract_sample_text():
     assert res.status_code == 200
     body = res.json()
     assert body["terms"]["hourly_wage"] == 9500
+    assert body["terms"]["workplace_name"] == "OO편의점 문래점"  # 참고 필드 추출 확인
     assert body["confidence"] in ("high", "low")
+
+
+def test_normalization_soft_nulls_bad_reference_dates():
+    from app.services.gemini import _normalize_terms
+
+    terms = schemas.Terms(hourly_wage=9500, contract_start_date="2026년 2월 1일")
+    assert _normalize_terms(terms).contract_start_date is None  # 실패 대신 null 강등
+    terms2 = schemas.Terms(contract_start_date="2026-02-01", workplace_name="OO편의점 문래점")
+    normalized = _normalize_terms(terms2)
+    assert normalized.contract_start_date == "2026-02-01"
+    assert normalized.workplace_name == "OO편의점 문래점"
 
 
 @pytest.mark.skipif(not _weasyprint_available(), reason="WeasyPrint(Pango) 미설치 — 배포 이미지에서 실행")

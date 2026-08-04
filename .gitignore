@@ -8,6 +8,10 @@ venv/
 # 환경변수 — 비밀키는 리포에 절대 커밋하지 않는다 (불변 규칙 5)
 .env
 
+# 테스트 산출물 (스모크 테스트가 재생성)
+smoke_petition.pdf
+petition_test.pdf
+
 # OS / IDE
 .DS_Store
 .idea/

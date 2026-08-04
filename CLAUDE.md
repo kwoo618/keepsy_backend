@@ -17,7 +17,7 @@ Keepsy: 청소년 알바생 노동권익 보호 앱 (GEEKs 해커톤). 이 리�
 ## 스택 (고정 — 대체 제안 금지)
 
 Python 3.12 / FastAPI / Pydantic v2 / google-genai / WeasyPrint / pytest
-배포: Ubuntu VPS + Caddy. Dockerfile·systemd 유닛 둘 다 유지.
+배포: Ubuntu VPS 베어메탈 + Caddy + systemd 유닛 (Docker 미사용 — 오너 확정).
 
 ## 데이터 규약
 

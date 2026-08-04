@@ -53,6 +53,11 @@ class Terms(BaseModel):
     break_minutes: int | None = None
     probation: Probation | None = None
     contract_period_months: int | None = None
+    # 판정 무관 참고 필드 (진정서 프리필용) — rules는 읽지 않는다
+    workplace_name: str | None = None
+    owner_name: str | None = None
+    contract_start_date: str | None = None  # "YYYY-MM-DD"
+    contract_end_date: str | None = None  # "YYYY-MM-DD"
     clauses: list[Clause] = []
 
 
