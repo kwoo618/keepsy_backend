@@ -42,6 +42,15 @@ def _image_mime(data: bytes) -> str:
     return "image/png" if data.startswith(b"\x89PNG") else "image/jpeg"
 
 
+def _is_deadline_exceeded(exc: Exception) -> bool:
+    return getattr(exc, "code", None) == 504 or "DEADLINE_EXCEEDED" in str(exc)
+
+
+def _thinking_config_unsupported(exc: Exception) -> bool:
+    text = str(exc)
+    return getattr(exc, "code", None) == 400 or "INVALID_ARGUMENT" in text or "thinking" in text.lower()
+
+
 def _strip_code_fence(text: str) -> str:
     """모델이 JSON을 ```json … ``` 로 감싸 보낸 경우 펜스를 벗긴다."""
     stripped = text.strip()
@@ -68,19 +77,35 @@ def extract_terms(req: ExtractRequest) -> ExtractResponse:
         image = base64.b64decode(req.image_base64)
         contents.append(types.Part.from_bytes(data=image, mime_type=_image_mime(image)))
 
+    base_config = {"response_mime_type": "application/json", "temperature": 0}
     try:
-        result = client.models.generate_content(
-            model=MODEL,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json", temperature=0
-            ),
-        )
+        try:
+            # 추출은 추론이 불필요 — thinking을 꺼서 15초 데드라인 안에 응답하게 한다
+            result = client.models.generate_content(
+                model=MODEL,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    **base_config,
+                    thinking_config=types.ThinkingConfig(thinking_budget=0),
+                ),
+            )
+        except Exception as exc:
+            if not _thinking_config_unsupported(exc):
+                raise
+            _log.info("thinking_budget=0 미지원 모델 — 기본 설정으로 재시도: %r", exc)
+            result = client.models.generate_content(
+                model=MODEL,
+                contents=contents,
+                config=types.GenerateContentConfig(**base_config),
+            )
         terms = Terms.model_validate(json.loads(_strip_code_fence(result.text or "")))
     except httpx.TimeoutException as exc:
-        _log.warning("Gemini 타임아웃(%sms)", TIMEOUT_MS)
+        _log.warning("Gemini 클라이언트 타임아웃(%sms)", TIMEOUT_MS)
         raise AiTimeout() from exc
     except Exception as exc:  # API 오류·파싱 실패·필드 불일치 포함
+        if _is_deadline_exceeded(exc):  # 서버 측 504도 타임아웃으로 분류
+            _log.warning("Gemini 서버 데드라인 초과(%sms)", TIMEOUT_MS)
+            raise AiTimeout() from exc
         _log.warning("Gemini 추출 실패 — 원인: %r", exc)
         raise ExtractionFailed() from exc
 
