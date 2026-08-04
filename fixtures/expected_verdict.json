@@ -1,5 +1,5 @@
 {
-  "_comment": "sample_contract.txt의 그라운드 트루스. request = 검토·수정 확정 후의 /analyze/contract 입력(추출 AI 비의존). expected_violations = 정확히 4건(RED 3 + YELLOW 1). legal_basis null은 오너 확인 대기 — 임의 기입 금지(CLAUDE.md 규칙 3).",
+  "_comment": "sample_contract.txt의 그라운드 트루스. request = 검토·수정 확정 후의 /analyze/contract 입력(추출 AI 비의존). expected_violations = 정확히 4건(RED 3 + YELLOW 1). legal_basis는 2026-08-04 오너 검증 완료 값.",
   "request": {
     "terms": {
       "hourly_wage": 9500,
@@ -51,14 +51,14 @@
       "grade": "RED",
       "clause_id": null,
       "stat_code": "PROBATION",
-      "legal_basis": null
+      "legal_basis": "최저임금법 제5조"
     },
     {
       "rule_id": "weekly_holiday",
       "grade": "YELLOW",
       "clause_id": "c2",
-      "stat_code": "WEEKLY_HOLIDAY",
-      "legal_basis": null
+      "stat_code": "WH_INCLUSION",
+      "legal_basis": "근로기준법 제55조"
     }
   ]
 }

@@ -22,7 +22,7 @@ def check(terms: Terms, worker: Worker) -> tuple[list[Violation], list[str]]:
                 grade="RED",
                 title="수습 감액 불가 (단순노무)",
                 detail="단순노무 종사자는 수습 기간·비율과 무관하게 최저임금 감액이 허용되지 않습니다.",
-                legal_basis=None,  # TODO(owner): 법적 근거 조문 확인 후 기입
+                legal_basis="최저임금법 제5조",
                 clause_id=None,
                 stat_code="PROBATION",
             )
@@ -51,7 +51,7 @@ def check(terms: Terms, worker: Worker) -> tuple[list[Violation], list[str]]:
                 grade="YELLOW",
                 title="수습 감액 요건 위반 의심",
                 detail=detail,
-                legal_basis=None,  # TODO(owner): 법적 근거 조문 확인 후 기입
+                legal_basis="최저임금법 제5조",
                 clause_id=None,
                 stat_code="PROBATION",
             )
@@ -62,7 +62,7 @@ def check(terms: Terms, worker: Worker) -> tuple[list[Violation], list[str]]:
             grade="RED",
             title="수습 감액 요건 위반",
             detail=detail,
-            legal_basis=None,  # TODO(owner): 법적 근거 조문 확인 후 기입
+            legal_basis="최저임금법 제5조",
             clause_id=None,
             stat_code="PROBATION",
         )
