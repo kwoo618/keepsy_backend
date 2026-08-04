@@ -2,14 +2,18 @@
 
 import base64
 import json
+import logging
 import os
 
 import httpx
 
 from app.schemas import ExtractRequest, ExtractResponse, Terms
 
-MODEL = "gemini-2.5-flash"
+# 특정 버전은 폐기될 수 있어(gemini-2.5-flash 404 사례) 최신 flash 공식 별칭을 사용
+MODEL = "gemini-flash-latest"
 TIMEOUT_MS = 15_000  # 불변 규칙 6: Gemini 타임아웃 15초
+
+_log = logging.getLogger("keepsy.gemini")
 
 
 class ExtractionFailed(Exception):
@@ -38,6 +42,17 @@ def _image_mime(data: bytes) -> str:
     return "image/png" if data.startswith(b"\x89PNG") else "image/jpeg"
 
 
+def _strip_code_fence(text: str) -> str:
+    """모델이 JSON을 ```json … ``` 로 감싸 보낸 경우 펜스를 벗긴다."""
+    stripped = text.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.split("\n", 1)[1] if "\n" in stripped else ""
+        stripped = stripped.rstrip()
+        if stripped.endswith("```"):
+            stripped = stripped[:-3]
+    return stripped.strip()
+
+
 def extract_terms(req: ExtractRequest) -> ExtractResponse:
     from google import genai  # 지연 임포트 — 판정 경로가 AI 의존성을 갖지 않게 한다
     from google.genai import types
@@ -61,10 +76,12 @@ def extract_terms(req: ExtractRequest) -> ExtractResponse:
                 response_mime_type="application/json", temperature=0
             ),
         )
-        terms = Terms.model_validate(json.loads(result.text))
+        terms = Terms.model_validate(json.loads(_strip_code_fence(result.text or "")))
     except httpx.TimeoutException as exc:
+        _log.warning("Gemini 타임아웃(%sms)", TIMEOUT_MS)
         raise AiTimeout() from exc
-    except Exception as exc:
+    except Exception as exc:  # API 오류·파싱 실패·필드 불일치 포함
+        _log.warning("Gemini 추출 실패 — 원인: %r", exc)
         raise ExtractionFailed() from exc
 
     core_fields = (terms.hourly_wage, terms.weekly_hours, terms.start_time, terms.end_time)

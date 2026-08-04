@@ -165,10 +165,20 @@ def test_malformed_body_returns_common_error_shape():
 # ── 조건부: Gemini 추출 / WeasyPrint PDF ─────────────────────────
 
 
+def test_gemini_code_fence_stripping():
+    from app.services.gemini import _strip_code_fence
+
+    payload = '{"hourly_wage": 9500}'
+    assert _strip_code_fence(payload) == payload
+    assert _strip_code_fence(f"```json\n{payload}\n```") == payload
+    assert _strip_code_fence(f"```\n{payload}\n```") == payload
+
+
 @pytest.mark.skipif(not os.getenv("GEMINI_API_KEY"), reason="GEMINI_API_KEY 미설정")
 def test_contract_extract_sample_text():
     raw = (FIXTURES / "sample_contract.txt").read_text(encoding="utf-8")
     res = client.post("/contract/extract", json={"raw_text": raw})
+
     assert res.status_code == 200
     body = res.json()
     assert body["terms"]["hourly_wage"] == 9500
