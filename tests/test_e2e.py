@@ -165,6 +165,29 @@ def test_malformed_body_returns_common_error_shape():
 # ── 조건부: Gemini 추출 / WeasyPrint PDF ─────────────────────────
 
 
+def test_gemini_normalization_rate_percent_to_ratio():
+    from app.services.gemini import _normalize_terms
+
+    terms = schemas.Terms(hourly_wage=9500, probation=schemas.Probation(months=6, rate=80.0))
+    assert _normalize_terms(terms).probation.rate == 0.8  # 80% 오추출 → 비율 정규화
+    terms2 = schemas.Terms(probation=schemas.Probation(months=3, rate=0.9))
+    assert _normalize_terms(terms2).probation.rate == 0.9  # 정상값은 그대로
+
+
+def test_gemini_normalization_rejects_out_of_range():
+    from app.services.gemini import ExtractionFailed, _normalize_terms
+
+    for bad in (
+        schemas.Terms(hourly_wage=500),          # 상식 범위 미만
+        schemas.Terms(hourly_wage=1_000_000),    # 상식 범위 초과
+        schemas.Terms(weekly_hours=200),
+        schemas.Terms(start_time="25:00"),
+        schemas.Terms(probation=schemas.Probation(months=6, rate=800.0)),  # ÷100 후에도 >1
+    ):
+        with pytest.raises(ExtractionFailed):
+            _normalize_terms(bad)
+
+
 def test_gemini_code_fence_stripping():
     from app.services.gemini import _strip_code_fence
 
